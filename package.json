@@ -1,0 +1,14 @@
+{
+  "name": "lmbek-hobby-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Architecture documentation for LMBEK Hobby Workspace",
+  "scripts": {
+    "dev": "likec4 start",
+    "build": "likec4 build -o dist",
+    "export": "likec4 export png -o exports"
+  },
+  "devDependencies": {
+    "likec4": "^1.21.1"
+  }
+}

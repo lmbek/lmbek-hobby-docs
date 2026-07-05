@@ -1,0 +1,21 @@
+views {
+  view landscape {
+    title 'System Landscape'
+    include *
+  }
+
+  view hobbyPlatform of hobbyPlatform {
+    title 'LMBEK Hobby Platform'
+    include *
+  }
+
+  view infrastructure of infrastructure {
+    title 'Infrastructure'
+    include *
+  }
+
+  view observability of observability {
+    title 'Observability Stack'
+    include *
+  }
+}

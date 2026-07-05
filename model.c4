@@ -1,0 +1,83 @@
+model {
+  customer = actor 'Customer' {
+    description 'End user of the hobby platform'
+  }
+
+  hobbyPlatform = system 'LMBEK Hobby Platform' {
+    description 'The complete hobby platform system'
+
+    placeholder1 = container 'Placeholder1 Service' {
+      description 'Application service (placeholder1-service)'
+    }
+
+    placeholder2 = container 'Placeholder2 Service' {
+      description 'Application service (placeholder2-service)'
+    }
+
+    orchestrators = container 'Orchestrators' {
+      description 'Per-grouping Docker Compose files (applications, proxy, docs) with local/stage/prod variants, includes shared local dependencies such as the reverse proxy'
+
+      proxy = component 'Proxy' {
+        description 'Traefik reverse proxy that routes all network traffic between services, serves a homepage (local only)'
+      }
+    }
+  }
+
+  infrastructure = system 'Infrastructure' {
+    description 'Cloud infrastructure and server provisioning'
+
+    iac = container 'IaC' {
+      description 'Terraform modules for cloud provisioning'
+    }
+
+    servers = container 'Servers' {
+      description 'Server configuration and provisioning (Ansible, Packer, cloud-init)'
+    }
+  }
+
+  observability = system 'Observability' {
+    description 'Monitoring, logging, and alerting'
+
+    prometheus = container 'Prometheus' {
+      description 'Metrics collection and storage'
+    }
+
+    grafana = container 'Grafana' {
+      description 'Dashboards and visualization (Docker monitoring, container logs)'
+    }
+
+    alloy = container 'Grafana Alloy' {
+      description 'Telemetry collector — gathers Docker container metrics and logs'
+    }
+
+    loki = container 'Loki' {
+      description 'Log aggregation — receives container stdout/stderr from Alloy'
+    }
+
+    kubernetes = container 'Kubernetes' {
+      description 'Container orchestration platform for staging and production'
+    }
+  }
+
+  deployment = system 'Deployment' {
+    description 'Environment-specific configuration, value overrides, and release manifests'
+  }
+
+  tools = system 'Tools' {
+    description 'General-purpose utilities, scripts, and helper tooling'
+  }
+
+  // Relationships
+  customer -> hobbyPlatform.orchestrators.proxy 'uses'
+  hobbyPlatform.orchestrators.proxy -> hobbyPlatform.placeholder1 'routes to'
+  hobbyPlatform.orchestrators.proxy -> hobbyPlatform.placeholder2 'routes to'
+  hobbyPlatform.orchestrators -> hobbyPlatform.placeholder1 'manages'
+  hobbyPlatform.orchestrators -> hobbyPlatform.placeholder2 'manages'
+  hobbyPlatform -> infrastructure 'deployed on'
+  observability.alloy -> observability.prometheus 'forwards metrics'
+  observability.alloy -> observability.loki 'forwards logs'
+  observability.grafana -> observability.prometheus 'queries metrics'
+  observability.grafana -> observability.loki 'queries logs'
+  observability.alloy -> hobbyPlatform 'collects metrics and logs (direct, bypasses proxy)'
+  deployment -> hobbyPlatform 'configures releases'
+}

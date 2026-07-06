@@ -3,6 +3,10 @@ model {
     description 'End user of the hobby platform'
   }
 
+  developer = actor 'Developer' {
+    description 'Software developer building and operating the hobby platform'
+  }
+
   hobbyPlatform = system 'LMBEK Hobby Platform' {
     description 'The complete hobby platform system'
 
@@ -14,12 +18,16 @@ model {
       description 'Application service (placeholder2-service)'
     }
 
-    orchestrators = container 'Orchestrators' {
-      description 'Per-grouping Docker Compose files (applications, proxy, docs) with local/stage/prod variants, includes shared local dependencies such as the reverse proxy'
+    proxy = container 'Proxy' {
+      description 'Traefik reverse proxy that routes all incoming traffic to backend services'
 
-      proxy = component 'Proxy' {
-        description 'Traefik reverse proxy that routes all network traffic between services, serves a homepage (local only)'
+      homepage = component 'Homepage' {
+        description 'Landing page served at localhost (local only)'
       }
+    }
+
+    docs = container 'Docs' {
+      description 'LikeC4 architecture documentation site'
     }
   }
 
@@ -54,8 +62,17 @@ model {
       description 'Log aggregation — receives container stdout/stderr from Alloy'
     }
 
+  }
+
+  platform = system 'Platform' {
+    description 'Kubernetes manifests, Kustomize overlays, and ArgoCD applications for staging/production'
+
     kubernetes = container 'Kubernetes' {
       description 'Container orchestration platform for staging and production'
+    }
+
+    argocd = container 'ArgoCD' {
+      description 'GitOps continuous delivery for Kubernetes'
     }
   }
 
@@ -68,16 +85,22 @@ model {
   }
 
   // Relationships
-  customer -> hobbyPlatform.orchestrators.proxy 'uses'
-  hobbyPlatform.orchestrators.proxy -> hobbyPlatform.placeholder1 'routes to'
-  hobbyPlatform.orchestrators.proxy -> hobbyPlatform.placeholder2 'routes to'
-  hobbyPlatform.orchestrators -> hobbyPlatform.placeholder1 'manages'
-  hobbyPlatform.orchestrators -> hobbyPlatform.placeholder2 'manages'
+  customer -> hobbyPlatform.proxy 'browses via *.localhost'
+  hobbyPlatform.proxy -> hobbyPlatform.placeholder1 'routes to'
+  hobbyPlatform.proxy -> hobbyPlatform.placeholder2 'routes to'
+  hobbyPlatform.proxy -> hobbyPlatform.docs 'routes to'
+  hobbyPlatform.proxy -> observability.grafana 'routes to (grafana.localhost)'
   hobbyPlatform -> infrastructure 'deployed on'
+  platform.argocd -> hobbyPlatform 'deploys via GitOps'
   observability.alloy -> observability.prometheus 'forwards metrics'
   observability.alloy -> observability.loki 'forwards logs'
   observability.grafana -> observability.prometheus 'queries metrics'
   observability.grafana -> observability.loki 'queries logs'
   observability.alloy -> hobbyPlatform 'collects metrics and logs (direct, bypasses proxy)'
+  developer -> hobbyPlatform 'develops and maintains'
+  developer -> observability.grafana 'monitors via grafana.localhost'
+  developer -> platform 'manages deployments'
+  developer -> infrastructure 'provisions infrastructure'
+  developer -> tools 'uses dev tooling'
   deployment -> hobbyPlatform 'configures releases'
 }

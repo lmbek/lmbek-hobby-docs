@@ -19,6 +19,7 @@ views {
     include *
   }
 
+
   view platform of platform {
     title 'Platform (Staging/Production)'
     include *

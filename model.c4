@@ -1,6 +1,6 @@
 model {
-  customer = actor 'Customer' {
-    description 'End user of the hobby platform'
+  visitor = actor 'Visitor' {
+    description 'Public visitor of the hobby platform — accesses services via lmbek.dk'
   }
 
   developer = actor 'Developer' {
@@ -10,20 +10,40 @@ model {
   hobbyPlatform = system 'LMBEK Hobby Platform' {
     description 'The complete hobby platform system'
 
+    // ── External Services ──────────────────────────────────────────────────
+    // Public-facing components — may call internal services
+    dns = container 'DNS' {
+      description 'DNS resolution for lmbek.dk (self-hosted, to be configured later)'
+    }
+
+    ssl = container 'SSL Termination' {
+      description 'Terminates TLS/SSL connections for incoming HTTPS traffic'
+    }
+
+    loadbalancer = container 'Load Balancer' {
+      description 'Public entry point that distributes incoming traffic to internal services'
+    }
+
+    website = container 'Website' {
+      description 'Public website served at lmbek.dk'
+    }
+
+    // ── Internal Services ──────────────────────────────────────────────────
+    // Backend components — only reachable from external services or other internal services
+    proxy = container 'Proxy' {
+      description 'Traefik reverse proxy that routes all incoming traffic to backend services'
+
+      homepage = component 'Homepage' {
+        description 'Landing page served at the root domain'
+      }
+    }
+
     placeholder1 = container 'Placeholder1 Service' {
       description 'Application service (placeholder1-service)'
     }
 
     placeholder2 = container 'Placeholder2 Service' {
       description 'Application service (placeholder2-service)'
-    }
-
-    proxy = container 'Proxy' {
-      description 'Traefik reverse proxy that routes all incoming traffic to backend services'
-
-      homepage = component 'Homepage' {
-        description 'Landing page served at localhost (local only)'
-      }
     }
 
     docs = container 'Docs' {
@@ -84,23 +104,37 @@ model {
     description 'General-purpose utilities, scripts, and helper tooling'
   }
 
-  // Relationships
-  customer -> hobbyPlatform.proxy 'browses via *.localhost'
+  // Relationships — Visitor traffic flow
+  visitor -> hobbyPlatform.dns 'browses lmbek.dk'
+  hobbyPlatform.dns -> hobbyPlatform.ssl 'resolves to'
+  hobbyPlatform.ssl -> hobbyPlatform.loadbalancer 'forwards decrypted traffic'
+  hobbyPlatform.loadbalancer -> hobbyPlatform.proxy 'forwards to internal proxy'
+
+  // Relationships — Internal routing
   hobbyPlatform.proxy -> hobbyPlatform.placeholder1 'routes to'
   hobbyPlatform.proxy -> hobbyPlatform.placeholder2 'routes to'
+  hobbyPlatform.proxy -> hobbyPlatform.website 'routes to (lmbek.dk)'
+  hobbyPlatform.loadbalancer -> hobbyPlatform.website 'routes to (direct)'
   hobbyPlatform.proxy -> hobbyPlatform.docs 'routes to'
-  hobbyPlatform.proxy -> observability.grafana 'routes to (grafana.localhost)'
+  hobbyPlatform.proxy -> observability.grafana 'routes to (grafana subdomain)'
+
+  // Relationships — Infrastructure & deployment
   hobbyPlatform -> infrastructure 'deployed on'
   platform.argocd -> hobbyPlatform 'deploys via GitOps'
+  deployment -> hobbyPlatform 'configures releases'
+
+  // Relationships — Observability
   observability.alloy -> observability.prometheus 'forwards metrics'
   observability.alloy -> observability.loki 'forwards logs'
   observability.grafana -> observability.prometheus 'queries metrics'
   observability.grafana -> observability.loki 'queries logs'
   observability.alloy -> hobbyPlatform 'collects metrics and logs (direct, bypasses proxy)'
+
+  // Relationships — Developer
   developer -> hobbyPlatform 'develops and maintains'
-  developer -> observability.grafana 'monitors via grafana.localhost'
+  developer -> deployment 'controls releases and configuration'
+  developer -> observability.grafana 'monitors via grafana subdomain'
   developer -> platform 'manages deployments'
   developer -> infrastructure 'provisions infrastructure'
   developer -> tools 'uses dev tooling'
-  deployment -> hobbyPlatform 'configures releases'
 }

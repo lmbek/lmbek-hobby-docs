@@ -9,6 +9,6 @@
     "export": "likec4 export png -o exports"
   },
   "devDependencies": {
-    "likec4": "^1.21.1"
+    "likec4": "^1.59.2"
   }
 }
